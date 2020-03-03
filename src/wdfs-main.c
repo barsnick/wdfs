@@ -705,7 +705,7 @@ static int wdfs_open(const char *localpath, struct fuse_file_info *fi)
 			">> %s() by PID %d\n", __func__, fuse_get_context()->pid);
 	}
 
-	assert(localpath &&  &fi);
+	assert(localpath && fi);
 
 	struct open_file *file = g_new0(struct open_file, 1);
 	file->modified = false;
@@ -771,7 +771,7 @@ static int wdfs_read(
 	if (wdfs.debug == true)
 		print_debug_infos(__func__, localpath);
 
-	assert(localpath && buf &&  &fi);
+	assert(localpath && buf && fi);
 
 	struct open_file *file = (struct open_file*)(uintptr_t)fi->fh;
 
@@ -794,7 +794,7 @@ static int wdfs_write(
 	if (wdfs.debug == true)
 		print_debug_infos(__func__, localpath);
 
-	assert(localpath && buf &&  &fi);
+	assert(localpath && buf && fi);
 
 	/* data below svn_basedir is read-only */
 	if (wdfs.svn_mode == true && g_str_has_prefix(localpath, svn_basedir))
@@ -970,7 +970,7 @@ static int wdfs_ftruncate(
 	if (wdfs.debug == true)
 		print_debug_infos(__func__, localpath);
 
-	assert(localpath &&  &fi);
+	assert(localpath && fi);
 
 	/* data below svn_basedir is read-only */
 	if (wdfs.svn_mode == true && g_str_has_prefix(localpath, svn_basedir))
