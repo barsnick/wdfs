@@ -5,8 +5,6 @@
 	#include <config.h>
 #endif
 
-#define FUSE_USE_VERSION 25
-
 #include <fuse.h>
 #include <ne_basic.h>
 
