@@ -498,7 +498,11 @@ static void wdfs_getattr_propfind_callback(
 /* this method returns the file attributes (stat) for a requested file either
  * from the cache or directly from the webdav server by performing a propfind
  * request. */
-static int wdfs_getattr(const char *localpath, struct stat *stat)
+static int wdfs_getattr(const char *localpath, struct stat *stat
+#if FUSE_USE_VERSION >= 30
+                        , struct fuse_file_info *fi
+#endif
+                        )
 {
 	if (wdfs.debug == true)
 		print_debug_infos(__func__, localpath);
@@ -611,7 +615,11 @@ static void wdfs_readdir_propfind_callback(
 	cache_add_item(&stat, remotepath1);
 
 	/* add directory entry */
-	if (item_data->filler(item_data->buf, filename, &stat, 0))
+	if (item_data->filler(item_data->buf, filename, &stat, 0
+#if FUSE_USE_VERSION >= 30
+	                      , 0
+#endif
+	                      ))
 		fprintf(stderr, "## filler() error in %s()!\n", __func__);
 
 	free_chars(&remotepath, &remotepath1, &remotepath2, NULL);
@@ -624,7 +632,11 @@ static void wdfs_readdir_propfind_callback(
  * wdfs_readdir_propfind_callback() is called. */
 static int wdfs_readdir(
 	const char *localpath, void *buf, fuse_fill_dir_t filler,
-	off_t offset, struct fuse_file_info *fi)
+	off_t offset, struct fuse_file_info *fi
+#if FUSE_USE_VERSION >= 30
+	, enum fuse_readdir_flags flags
+#endif
+	)
 {
 	if (wdfs.debug == true)
 		print_debug_infos(__func__, localpath);
@@ -638,7 +650,11 @@ static int wdfs_readdir(
 	/* for details about the svn_mode, please have a look at svn.c */
 	/* if svn_mode is enabled, add svn_basedir to root */
 	if (wdfs.svn_mode == true && !strcmp(localpath, "/")) {
-		filler(buf, svn_basedir + 1, NULL, 0);
+		filler(buf, svn_basedir + 1, NULL, 0
+#if FUSE_USE_VERSION >= 30
+		       , 0
+#endif
+		       );
 	}
 
 	/* if svn_mode is enabled, add level 1 directories to svn_basedir */
@@ -686,8 +702,16 @@ static int wdfs_readdir(
 	struct stat st;
 	memset(&st, 0, sizeof(st));
 	st.st_mode = S_IFDIR | 0777;
-	filler(buf, ".", &st, 0);
-	filler(buf, "..", &st, 0);
+	filler(buf, ".", &st, 0
+#if FUSE_USE_VERSION >= 30
+	       , 0
+#endif
+	       );
+	filler(buf, "..", &st, 0
+#if FUSE_USE_VERSION >= 30
+	       , 0
+#endif
+	       );
 
 	FREE(item_data.remotepath);
 	return 0;
@@ -967,6 +991,10 @@ static int wdfs_truncate(const char *localpath, off_t size)
 static int wdfs_ftruncate(
 	const char *localpath, off_t size, struct fuse_file_info *fi)
 {
+#if FUSE_USE_VERSION >= 30
+	if (fi == NULL)
+		return wdfs_truncate(localpath, size);
+#endif
 	if (wdfs.debug == true)
 		print_debug_infos(__func__, localpath);
 
@@ -1157,8 +1185,15 @@ static int wdfs_unlink(const char *localpath)
 
 
 /* author jens, 31.07.2005 19:13:39, location: heli at heinemanns
- * this methods renames a file. it uses the webdav method move to do that. */
-static int wdfs_rename(const char *localpath_src, const char *localpath_dest)
+ * this methods renames a file. it uses the webdav method move to do that.
+ * FIXME barsnick evaluate flags in fuse3 version:
+ * "If RENAME_NOREPLACE is specified, the filesystem must not overwrite newname if it exists and return an error instead. If RENAME_EXCHANGE is specified, the filesystem must atomically exchange the two files, i.e. both must exist and neither may be deleted."
+ */
+static int wdfs_rename(const char *localpath_src, const char *localpath_dest
+#if FUSE_USE_VERSION >= 30
+                       , unsigned int flags
+#endif
+                       )
 {
 	if (wdfs.debug == true) {
 		print_debug_infos(__func__, localpath_src);
@@ -1208,7 +1243,11 @@ static int wdfs_rename(const char *localpath_src, const char *localpath_dest)
 
 
 /* this is just a dummy implementation to avoid errors, when running chmod. */
-int wdfs_chmod(const char *localpath, mode_t mode)
+int wdfs_chmod(const char *localpath, mode_t mode
+#if FUSE_USE_VERSION >= 30
+               , struct fuse_file_info *fi
+#endif
+               )
 {
 	if (wdfs.debug == true)
 		print_debug_infos(__func__, localpath);
@@ -1223,7 +1262,13 @@ int wdfs_chmod(const char *localpath, mode_t mode)
  * a usefull implementation is not possible, because the webdav standard only 
  * defines a "getlastmodified" property that is read-only and just updated when
  * the file's content or properties change. */
-static int wdfs_setattr(const char *localpath, struct utimbuf *buf)
+static int wdfs_setattr(const char *localpath,
+#if FUSE_USE_VERSION >= 30
+                        const struct timespec tv[2], struct fuse_file_info *fi
+#else
+                        struct utimbuf *buf
+#endif
+                        )
 {
 	if (wdfs.debug == true)
 		print_debug_infos(__func__, localpath);
@@ -1249,10 +1294,14 @@ static int wdfs_statfs(const char *localpath, struct statvfs *buf)
 
 
 /* just say hello when fuse takes over control. */
+#if FUSE_USE_VERSION >= 30
+	static void* wdfs_init(struct fuse_conn_info *conn, struct fuse_config *cfg)
+#else
 #if FUSE_VERSION >= 26
 	static void* wdfs_init(struct fuse_conn_info *conn)
 #else
 	static void* wdfs_init()
+#endif
 #endif
 {
 	if (wdfs.debug == true)
@@ -1285,8 +1334,12 @@ static struct fuse_operations wdfs_operations = {
 	.read		= wdfs_read,
 	.write		= wdfs_write,
 	.release	= wdfs_release,
+#if FUSE_USE_VERSION < 30
 	.truncate	= wdfs_truncate,
-	.ftruncate	= wdfs_ftruncate,
+	.ftruncate      = wdfs_ftruncate,
+#else
+	.truncate	= wdfs_ftruncate,
+#endif
 	.mknod		= wdfs_mknod,
 	.mkdir		= wdfs_mkdir,
 	/* webdav treats file and directory deletions equal, both use wdfs_unlink */
@@ -1294,9 +1347,11 @@ static struct fuse_operations wdfs_operations = {
 	.rmdir		= wdfs_unlink,
 	.rename		= wdfs_rename,
 	.chmod		= wdfs_chmod,
-	/* utime should be better named setattr
-	 * see: http://sourceforge.net/mailarchive/message.php?msg_id=11344401 */
+#if FUSE_USE_VERSION >= 30
+	.utimens	= wdfs_setattr,
+#else
 	.utime		= wdfs_setattr,
+#endif
 	.statfs		= wdfs_statfs,
 	.init		= wdfs_init,
 	.destroy	= wdfs_destroy,
