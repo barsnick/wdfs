@@ -310,7 +310,11 @@ void svn_add_level1_directories(struct dir_item *item_data)
 					sprintf(int2string->str, "%d", 
 						i + (svn_revisions_per_level2_directory - 1) );
 				g_string_append(directory_name, int2string->str);
+#if FUSE_USE_VERSION >= 30
+				item_data->filler(item_data->buf, directory_name->str, NULL, 0, 0);
+#else
 				item_data->filler(item_data->buf, directory_name->str, NULL, 0);
+#endif
 				g_string_free(directory_name, TRUE);
 			}
 		}
@@ -371,7 +375,11 @@ int svn_add_level2_directories(
 		for (i = x; i <= y; i++) {
 			/* convert int to string by printing it into a string object */
 			sprintf(int2string->str, "%d", i);
+#if FUSE_USE_VERSION >= 30
+			item_data->filler(item_data->buf, int2string->str, NULL, 0, 0);
+#else
 			item_data->filler(item_data->buf, int2string->str, NULL, 0);
+#endif
 		}
 		g_string_free(int2string, TRUE);
 		return 0;
