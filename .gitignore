@@ -1,8 +1,13 @@
+*~
 *.log
 .deps
+*.o
+src/wdfs
 src/.deps/
 Makefile
 src/Makefile
 *.status
 src/config.h
 src/stamp-h1
+compile
+autom4te.cache/
