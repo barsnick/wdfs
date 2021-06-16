@@ -7,7 +7,6 @@ AC_CHECK_HEADERS([pthread.h])
 AC_CHECK_FUNCS([strndup])
 
 AC_PROG_CC
-export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
 
 have_fuse3_library="no"
 PKG_CHECK_MODULES([FUSE], [fuse3], [
