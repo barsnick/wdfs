@@ -26,7 +26,7 @@ if test "$have_fuse3_library" = "yes"; then
 else
     CFLAGS="$CFLAGS -DFUSE_USE_VERSION=25"
 fi
-LIBS="$NEON_LIBS $GLIB2_LIBS $FUSE_LIBS"
+LIBS="-Wl,--as-needed $NEON_LIBS $GLIB2_LIBS $FUSE_LIBS"
 
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT
